@@ -1,8 +1,11 @@
 const express = require('express');
 const app = express();
+const cors = require("cors");
 const { pool } = require('./dbConfig');
-
 const PORT = process.env.PORT || 4000;
+
+app.use(express.json())
+app.use(cors()) 
 
 app.set("view engine", "ejs");
 
