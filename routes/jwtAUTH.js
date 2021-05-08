@@ -1,12 +1,14 @@
 const router = require("express").Router();
 const pool = require("../db");
+const bcrypt = require("bcrypt");
+const jwtGenerator = require("../utils/jwtGenerator");
 
 router.post("/users/register", async (req,res) => {
     try {
         const { name, email, password } = req.body();
 
         // check if user exists in db
-        const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [
+        const user = await pool.query("SELECT * FROM users WHERE email = $1", [
             email
         ]); 
         // res.json(user.rows)
@@ -18,17 +20,17 @@ router.post("/users/register", async (req,res) => {
         const saltRound = 10;
         const salt = await bcrypt.genSalt(saltRound);
 
-        const bcryptPassword = bcrypt.hash(password, salt);
+        const bcryptPassword = await bcrypt.hash(password, salt);
 
         // insert new user into db
-        const newUser= await pool.query("INSERT INTO users (user_name, user_email, user_password) VALUES ($1, $2, $3)", 
-        [name, email, bcryptPassword]
-        );
+        const newUser = await pool.query("INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *", [name, email, bcryptPassword]);
 
-        
+        // res.json(newUser.rows[0]);
+        const token = jwtGenerator(newUser.rows[0].user_id);
+        res.json({ token });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send("Server Error");
+        res.status(500).send("Internal Server Error");
     }
 })
 
