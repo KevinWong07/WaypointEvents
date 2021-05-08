@@ -4,8 +4,12 @@ const cors = require("cors");
 const { pool } = require('./dbConfig');
 const PORT = process.env.PORT || 4000;
 
-app.use(express.json())
+// middleware
+app.use(express.json()) // req.body
 app.use(cors()) 
+
+// routes
+app.use("/auth", require("./routes/jwtAUTH"));
 
 app.set("view engine", "ejs");
 
