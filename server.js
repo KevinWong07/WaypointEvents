@@ -8,6 +8,7 @@ const flash = require("express-flash");
 const passport = require("passport");
 
 const initializePassport = require("./passportConfig");
+const { rawListeners } = require("./db");
 // PORT
 const PORT = process.env.PORT || 4000;
 
@@ -19,9 +20,10 @@ app.use(session({
     secret: 'xIqkJS96kNdHgp8Wi0mvIGtQ4Oa2e1nn', 
     resave: false,
     saveUninitialized: false,
-
 }));
 app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(express.static('public'));
 app.use(express.static(__dirname + '/css'));
 // app.use(express.json()); // req.body
@@ -34,21 +36,22 @@ app.get("/", (req, res) => {
     res.render("index");
 })
 
-app.get("/users/register", (req, res) => {
+app.get("/users/register", checkAuthenticated, (req, res) => {
     res.render("register");
 });
 
-app.get("/users/login", (req, res) => {
+app.get("/users/login", checkAuthenticated, (req, res) => {
     res.render("login");
 });
 
 app.get("/users/dashboard", (req, res) => {
-    res.render("dashboard");
+    res.render("dashboard", { user: req.user.username});
 });
 
-app.get("/tournament", (req, res) => {
-    res.render("tournament");
-})
+app.get("/users/logout", (req, res) => {
+    req.logout();
+    res.render("index", { message: "You have been logged out." });
+});
 
 app.post("/users/register", async (req, res) => {
     let { email, username, password, cpassword } = req.body;
@@ -107,6 +110,26 @@ app.post("/users/register", async (req, res) => {
         );
     }
 });
+
+app.post("/users/login", passport.authenticate("local", { 
+    successRedirect: "/users/dashboard", 
+    failureRedirect: "/users/login", 
+    failureFlash: true 
+}));
+
+function checkAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return res.redirect("/users/dashboard");
+    }
+    next();
+}
+
+function checkNotAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect("/users/login");
+}
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
